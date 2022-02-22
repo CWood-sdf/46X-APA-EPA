@@ -4,6 +4,7 @@
 //Update the bot angle in all three dimensions
 void updateBotAngle(bool add){
   //
+  bool gpsFirst = false;
   static double lastAngle = angler.orientation(orientationType::yaw, rotationUnits::deg);
   
   static double lastAngleYZ = angler.orientation(orientationType::pitch, rotationUnits::deg);
@@ -15,8 +16,12 @@ void updateBotAngle(bool add){
   double errYZ = 1.0;
   double errXZ = 1.0;
   static int i = 0;
-
   //
+  if(!share.gpsBad()/* && !gpsFirst*/){
+    // cout << "Share not bad: " << share.heading() << endl;
+    botAngles.x = share.heading();
+    gpsFirst = true;
+  }
   double angle = angler.orientation(orientationType::yaw, rotationUnits::deg);
   double gain = posNeg180(angle - lastAngle);
   gain *= (gain > 0 ? err : errNeg);
@@ -52,48 +57,17 @@ void updateBotAngle(bool add){
 
 }
 void microWait(uint time);
-// LinkedList<pair<PVector, double>> gpsPostns;
-// mutex gpsPosShare;
-// LinkedList<pair<PVector, double>> odomPostns; 
-// mutex odomPosShare;
-// bool useOut = false;
-// thread addToStream = thread([](){
-//   ofstream sdCard ("DEBUG1.txt");
-//   if(!sdCard.is_open()){
-//     useOut = true;
-//     sdCard << "var arr = [";
-//     while(1){
-//       if(gpsPostns.size() > 0 && odomPostns.size() > 0){
-//         sdCard << flush;
-//         while(!gpsPosShare.try_lock()){
 
-//         }
-//         gpsPosShare.lock();
-//         sdCard << "[[new PVector(" << gpsPostns.getBase()->first.x << ", "
-//           << gpsPostns.getBase()->first.y << "), " << gpsPostns.getBase()->second << "], ";
-//         gpsPostns.popBase();
-//         gpsPosShare.unlock();
-//         while(!odomPosShare.try_lock()){
-
-//         }
-//         odomPosShare.lock();
-//         sdCard << "[new PVector(" << odomPostns.getBase()->first.x << ", "
-//           << odomPostns.getBase()->first.y << "), " << odomPostns.getBase()->second << "]],";
-//         odomPostns.popBase();
-//         odomPosShare.unlock();
-//         s(1);
-//       }
-//     }
-//   }
-// });
 void trackPos (){
   int times = 0;
   while(1){
     //Pause for 2 milliseconds
     int waitTime = 2000;
+    updateBotAngle();
     positioner.update(times == 10, waitTime);
-    
-    microWait(waitTime);
+    // cout << "Yeet" << endl;
+    s(2);
+    // microWait(waitTime);
     //Print the position every 5 iterations (0.01 s)
     // if(times++ == 5){
     //   while(!gpsPosShare.try_lock()){
@@ -155,6 +129,7 @@ void microWait(uint time){
 // }
 
 void executeThreads(){
+  
   //Execute autonomous functions
   while(1){
     if(threadFns.size() > 0){
